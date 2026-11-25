@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-t="d">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Mesa RPG</title>
+<style>
+:root{--bg:#12141a;--pn:#1c1f28;--tx:#e8eaf0;--mu:#8b92a5;--ac:#6c8cff;--bd:#2b3040}
+[data-t=l]{--bg:#f2f4f8;--pn:#fff;--tx:#1b1f2a;--mu:#667;--bd:#d8dce6}
+*{box-sizing:border-box}body{margin:0;font-family:system-ui,sans-serif;background:var(--bg);color:var(--tx);min-height:100vh}
+button,input,select,textarea{font:inherit;color:var(--tx);background:var(--pn);border:1px solid var(--bd);border-radius:10px;padding:10px 12px}
+button{cursor:pointer;background:var(--ac);color:#fff;border:0}button.g{background:var(--pn);color:var(--tx);border:1px solid var(--bd)}
+input,textarea,select{width:100%;margin:6px 0}textarea{min-height:64px}
+#bar{display:flex;align-items:center;gap:8px;padding:10px 14px;border-bottom:1px solid var(--bd);background:var(--pn)}
+#bar b{flex:1}.scr{display:none;padding:16px;max-width:1100px;margin:auto}.scr.on{display:block}
+.card{background:var(--pn);border:1px solid var(--bd);border-radius:14px;padding:16px}
+#s-login .card{max-width:360px;margin:8vh auto}
+.row{display:flex;gap:12px;flex-wrap:wrap;align-items:flex-start}.f{flex:1;min-width:160px}
+.mini{display:flex;gap:8px;margin-bottom:16px}.mini .card{padding:8px 12px;cursor:pointer;font-size:.85rem;opacity:.85}.mini .card:hover{opacity:1;border-color:var(--ac)}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:12px}
+.t{cursor:pointer}.t small,.mu{color:var(--mu)}.t p{margin:6px 0}
+.b{font-size:.75rem;padding:3px 9px;border-radius:99px;background:var(--bd)}.b.m{background:var(--ac);color:#fff}
+#err{color:#e66;min-height:1.2em;font-size:.9rem}a.lk{color:var(--ac);cursor:pointer;font-size:.9rem}
+.ov{position:fixed;inset:0;background:#000a;display:none;align-items:center;justify-content:center;z-index:30;padding:12px}
+.ov.on{display:flex}.box{background:var(--pn);border:1px solid var(--bd);border-radius:16px;padding:18px;width:100%;max-width:460px;max-height:92vh;overflow:auto}
+.full{position:fixed;inset:0;z-index:40;display:flex;align-items:center;justify-content:center;font-size:clamp(1.6rem,6vw,3rem);font-weight:700;background:linear-gradient(135deg,#243b8f,#6c8cff);color:#fff;text-align:center;padding:20px}
+#wl{opacity:0;pointer-events:none;transition:opacity .6s}#wl.on{opacity:1}
+#sl{transform:translateX(-100%);pointer-events:none}
+#tb{display:flex;gap:6px;overflow-x:auto;padding-bottom:8px}#tb button{flex:none;padding:8px 11px;background:var(--pn);color:var(--tx);border:1px solid var(--bd)}#tb button.on{border-color:var(--ac);background:var(--ac);color:#fff}
+canvas#cv{width:100%;height:auto;border-radius:12px;border:1px solid var(--bd);touch-action:none;background:#000;display:block}
+#dp{display:none;grid-template-columns:repeat(3,56px);gap:6px;justify-content:center;margin-top:12px}#dp button{height:56px;font-size:1.3rem}
+@media(max-width:800px){#dp.pl{display:grid}}
+#toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:var(--ac);color:#fff;padding:10px 16px;border-radius:99px;opacity:0;transition:.3s;z-index:60;pointer-events:none}#toast.on{opacity:1}
+.fade{animation:fd .4s}@keyframes fd{from{opacity:0;transform:translateY(8px)}}
+</style>
+</head>
+<body>
+<div id="bar"><b>🎲 Mesa RPG</b><span id="who" class="mu"></span><button class="g" id="bp" onclick="charM(0)" style="display:none">🧍 Personagem</button><button class="g" onclick="theme()">🌓</button><button class="g" id="bo" onclick="logout()" style="display:none">Sair</button></div>
+
+<section id="s-login" class="scr on"><div class="card fade">
+<h2 style="margin-top:0">Identificação</h2>
+<input id="lu" placeholder="Nome de usuário" autocomplete="username">
+<input id="lp" type="password" placeholder="Senha" autocomplete="current-password" onkeydown="event.key=='Enter'&&login()">
+<div id="err"></div>
+<div class="row"><button onclick="login()">Entrar</button><button class="g" onclick="regM()">Criar conta</button></div>
+<p><a class="lk" onclick="pwM()">Alterar senha</a></p></div></section>
+
+<section id="s-tables" class="scr">
+<div class="mini"><div class="card" onclick="findM()">🔎 Encontrar mesa</div><div class="card" onclick="newM()">➕ Criar mesa</div></div>
+<h3>Minhas mesas</h3><div id="tl" class="grid"></div></section>
+
+<section id="s-table" class="scr">
+<div class="row" style="align-items:center;margin-bottom:8px"><button class="g" onclick="leave()">← Mesas</button><b id="tn" style="flex:1"></b><button class="g" id="bc" onclick="charM(1)">🧍 Meu personagem</button></div>
+<div id="tb"></div>
+<div id="fg" class="row mu" style="align-items:center;margin:4px 0"></div>
+<canvas id="cv" width="768" height="512"></canvas>
+<div id="dp"><span></span><button onclick="mv(0,-1)">▲</button><span></span><button onclick="mv(-1,0)">◀</button><button onclick="mv(0,1)">▼</button><button onclick="mv(1,0)">▶</button></div>
+</section>
+
+<div class="full" id="wl" ></div>
+<div class="full" id="sl" style="transition:none"></div>
+<div class="ov" id="ov" onclick="event.target==this&&X()"><div class="box fade" id="mb"></div></div>
+<div id="toast"></div>
+
+<script>
+const W=24,Hh=16,S=32,$=s=>document.querySelector(s),esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+let D={u:{},t:[]},me=null,T=null,draft=null,tool='t0',sel=null,CL,dn=false,bm=true,lastK='';
+const save=()=>{};
+const H=async s=>[...new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(s)))].map(b=>b.toString(16).padStart(2,0)).join('');
+const M=h=>{$('#mb').innerHTML=h;$('#ov').classList.add('on')},X=()=>$('#ov').classList.remove('on');
+const toast=m=>{const t=$('#toast');t.textContent=m;t.classList.add('on');setTimeout(()=>t.classList.remove('on'),2200)};
+const show=id=>{document.querySelectorAll('.scr').forEach(e=>e.classList.toggle('on',e.id==id));const l=id=='s-login';$('#bo').style.display=l?'none':'';$('#bp').style.display=id=='s-tables'?'':'none';$('#who').textContent=l?'':me}
+const theme=()=>{const h=document.documentElement;h.dataset.t=h.dataset.t=='d'?'l':'d'};
+const isM=()=>T&&T.m==me;
+const DL={g:'m',h:1,w:1,r:0,c:'#4a6fd8',hc:'#3a2a1a',a:0};
+const SK=['#f1c27d','#f5d6b0','#c68642','#8d5524','#7aa86b','#9aa7b5'];
+
+/* ---------- Autenticação ---------- */
+const okU=u=>/^[A-Za-z0-9_-]{3,20}$/.test(u);
+async function login(){const u=$('#lu').value.trim(),p=$('#lp').value,e=$('#err');if(!u||!p)return e.textContent='Preencha usuário e senha';
+ e.textContent='Entrando...';try{await FB.login(u,p);e.textContent=''}catch(x){e.textContent=x.message=='nouser'?'Usuário ou senha inválidos':FB.msg(x)}}
+function regM(){M(`<h3>Criar conta</h3><input id="ru" placeholder="Usuário (letras, números, _ ou -)"><input id="re" type="email" placeholder="E-mail (para recuperar a senha)"><input id="rp" type="password" placeholder="Senha (mín. 6 caracteres)"><div id="pe" style="color:#e66"></div><button onclick="reg()">Criar</button>`)}
+async function reg(){const u=$('#ru').value.trim();if(!okU(u))return $('#pe').textContent='Usuário inválido (3-20 caracteres: letras, números, _ ou -)';
+ try{await FB.reg(u,$('#re').value.trim(),$('#rp').value);X()}catch(x){$('#pe').textContent=FB.msg(x)}}
+const logout=()=>FB.out();
+function authed(u,look,fresh){me=u;D.u[u]={look};$('#lp').value='';
+ if(!fresh){tl();show('s-tables');return}
+ const w=$('#wl');w.innerHTML='Bem-vindo,<br>'+esc(u)+' 👋';w.classList.add('on');
+ setTimeout(()=>{tl();show('s-tables');w.classList.remove('on')},1900)}
+function unauthed(){me=null;T=null;D.t=[];show('s-login')}
+function pwM(){M(`<h3>Alterar senha</h3><p class="mu">Digite o nome do criador da aplicação (8 letras). Depois enviaremos um link de redefinição ao e-mail da conta.</p>
+<input id="cr" maxlength="8" placeholder="NOME DO CRIADOR" oninput="this.value=this.value.toUpperCase().replace(/[^A-Z]/g,'')">
+<input id="pu" placeholder="Seu usuário"><div id="pe" style="color:#e66"></div>
+<button onclick="pw()">Enviar link</button>`)}
+async function pw(){const e=$('#pe');if($('#cr').value!=='VINICIUS')return e.textContent='Resposta incorreta';
+ try{await FB.reset($('#pu').value.trim());X();toast('Link enviado ao seu e-mail!')}catch(x){e.textContent=FB.msg(x)}}
+
+/* ---------- Mesas ---------- */
+function tl(){const L=D.t.filter(t=>t.m==me||t.mem[me]||t.req.includes(me));
+ $('#tl').innerHTML=L.map(t=>{const m=t.m==me,p=!m&&!t.mem[me];
+ return `<div class="card t fade" ${p?'':`onclick="enter('${t.id}')"`}><b>${esc(t.n)}</b><br><small>${esc(t.s)}</small><p>${esc(t.d)}</p><span class="b ${m?'m':''}">${m?'Mestre'+(t.req.length?' · '+t.req.length+' pedido(s)':''):p?'Aguardando aprovação':'Jogador'}</span></div>`}).join('')||'<p class="mu">Você ainda não participa de nenhuma mesa.</p>'}
+function newM(){M(`<h3>Criar mesa</h3><input id="nn" placeholder="Nome da mesa"><textarea id="nd" placeholder="Descrição"></textarea><input id="ns" placeholder="Sistema utilizado (ex: D&D 5e, Call of Cthulhu...)"><button onclick="mk()">Criar</button>`)}
+function mk(){const n=$('#nn').value.trim(),d=$('#nd').value.trim(),s=$('#ns').value.trim();if(!n||!s)return toast('Informe nome e sistema');
+ FB.mk({n,d,s,m:me,mem:{},req:[],map:{t:Array(W*Hh).fill(0),o:{}},live:{b:{},fog:0}});X();toast('Mesa criada!')}
+function findM(){M(`<h3>Encontrar mesa</h3><input id="fq" placeholder="Nome da mesa" oninput="fr()"><div id="fr"></div>`);fr()}
+function fr(){const q=$('#fq').value.trim().toLowerCase();$('#fr').innerHTML=q?(D.t.filter(t=>t.n.toLowerCase().includes(q)).map(t=>`<div class="card t" style="margin-top:8px" onclick="fd('${t.id}')"><b>${esc(t.n)}</b> <small>${esc(t.s)}</small></div>`).join('')||'<p class="mu">Nenhuma mesa encontrada.</p>'):''}
+function fd(id){const t=D.t.find(x=>x.id==id),in_=t.m==me||t.mem[me],rq=t.req.includes(me);
+ M(`<h3>${esc(t.n)}</h3><p class="mu">Sistema: ${esc(t.s)}</p><p>${esc(t.d)||'Sem descrição.'}</p>${in_?'<p>Você já participa.</p>':rq?'<p>Solicitação enviada. Aguarde o mestre.</p>':`<button onclick="rq('${id}')">Solicitar entrada</button>`}`)}
+function rq(id){FB.up(id,{req:FB.ar(me)});X();toast('Solicitação enviada!')}
+
+/* ---------- Entrar na mesa ---------- */
+function enter(id){T=D.t.find(x=>x.id==id);const s=$('#sl');s.innerHTML=esc(T.n);s.style.transition='none';s.style.transform='translateX(-100%)';s.style.pointerEvents='auto';void s.offsetWidth;
+ s.style.transition='transform .55s ease';s.style.transform='translateX(0)';
+ setTimeout(()=>{setup();show('s-table');s.style.transform='translateX(100%)';s.style.pointerEvents='none';if(!isM()&&!T.mem[me].c)charM(1)},1300)}
+function leave(){T=null;draft=null;tl();show('s-tables')}
+function setup(){const m=isM();$('#tn').textContent=T.n+(m?' · Mestre':' · Jogador');$('#bc').style.display=m?'none':'';$('#dp').className=m?'':'pl';
+ if(m){draft=JSON.parse(JSON.stringify(T.map));
+ const TL=[['t0','🟩','Grama'],['t1','🟫','Terra'],['t2','◻️','Caminho'],['t3','🟦','Água'],['t4','🟨','Areia'],['t5','⬜','Neve'],['o:tree','🌳','Árvore'],['o:house','🏠','Casa'],['o:fence','🚧','Cerca'],['o:wall','🧱','Parede'],['o:rock','🪨','Pedra'],['o:animal','🐄','Animal'],['x','🧽','Apagar'],['bl','🚫','Bloquear/liberar área'],['mv','🧍','Mover personagem']];
+ $('#tb').innerHTML=TL.map(t=>`<button title="${t[2]}" data-k="${t[0]}" onclick="tool='${t[0]}';pk()">${t[1]}</button>`).join('')+`<button class="g" onclick="sv()">💾 Salvar</button><button class="g" onclick="mgM()">👥 Mesa${T.req.length?' ('+T.req.length+')':''}</button><a href="https://open.spotify.com" target="_blank" rel="noopener"><button style="background:#1db954">🎵 Spotify</button></a>`;
+ $('#fg').innerHTML=`Visão dos jogadores: <input type="range" min="0" max="12" value="${T.live.fog}" style="width:140px" oninput="T.live.fog=+this.value;FB.up(T.id,{'live.fog':+this.value});draw();this.nextSibling.textContent=this.value||'livre'"><span>${T.live.fog||'livre'}</span>`;pk()}
+ else{$('#tb').innerHTML='';$('#fg').innerHTML='Use as setas/WASD ou os botões para mover seu personagem.'}draw()}
+const pk=()=>document.querySelectorAll('#tb [data-k]').forEach(b=>b.classList.toggle('on',b.dataset.k==tool));
+function sv(){FB.up(T.id,{map:draft});toast('Cenário salvo!')}
+
+/* ---------- Mapa ---------- */
+const TC=['#5a8f3e','#8a6a45','#c2b79a','#3b6fb0','#d9c27a','#e8eef2'],OB={tree:'🌳',house:'🏠',animal:'🐄',rock:'🪨'},BK=['tree','house','rock','fence','wall'];
+const blocked=(x,y)=>{const k=x+','+y,m=T.map;return m.t[y*W+x]==3||BK.includes(m.o[k])||T.live.b[k]};
+function draw(){if(!T)return;const c=$('#cv').getContext('2d'),m=isM()?draft:T.map,mm=!isM()&&T.mem[me];
+ for(let y=0;y<Hh;y++)for(let x=0;x<W;x++){c.fillStyle=TC[m.t[y*W+x]];c.fillRect(x*S,y*S,S,S);c.strokeStyle='#0002';c.strokeRect(x*S,y*S,S,S);
+ const o=m.o[x+','+y];c.textAlign='center';c.font='24px serif';
+ if(OB[o])c.fillText(OB[o],x*S+S/2,y*S+25);
+ else if(o=='wall'){c.fillStyle='#555';c.fillRect(x*S,y*S,S,S);c.fillStyle='#777';c.fillRect(x*S+2,y*S+2,S-4,6)}
+ else if(o=='fence'){c.fillStyle='#8a5a2b';c.fillRect(x*S+2,y*S+12,S-4,4);for(let i=0;i<3;i++)c.fillRect(x*S+4+i*11,y*S+6,4,18)}
+ if(T.live.b[x+','+y]){c.fillStyle='#e336';c.fillRect(x*S,y*S,S,S);c.fillStyle='#fff8';c.font='16px sans-serif';c.fillText('🚫',x*S+S/2,y*S+22)}}
+ for(const u in T.mem){const e=T.mem[u];if(!e.c)continue;const [px,py]=e.p;
+ if(sel==u){c.strokeStyle='#fc3';c.lineWidth=2;c.strokeRect(px*S+1,py*S+1,S-2,S-2);c.lineWidth=1}
+ if(u==me){c.fillStyle='#fff5';c.beginPath();c.ellipse(px*S+16,py*S+30,12,5,0,0,7);c.fill()}
+ drawChar(c,px*S+16,py*S+30,1,e.c.look);c.fillStyle='#fff';c.strokeStyle='#000';c.lineWidth=3;c.font='bold 9px sans-serif';c.strokeText(e.c.name.slice(0,10),px*S+16,py*S+5);c.fillText(e.c.name.slice(0,10),px*S+16,py*S+5);c.lineWidth=1}
+ const r=T.live.fog;if(mm&&r>0){c.fillStyle='#000';const [mx,my]=mm.p;for(let y=0;y<Hh;y++)for(let x=0;x<W;x++)if(Math.hypot(x-mx,y-my)>r)c.fillRect(x*S,y*S,S,S)}}
+function drawChar(c,x,y,s,l){const w=9*l.w*s*(l.r==2?1.15:1),h=11*l.h*s*(l.r==2?.85:1),hr=4.5*s,hy=y-h-hr,sk=SK[l.r]||SK[0];
+ if(l.a==3){c.fillStyle='#a33';c.fillRect(x-w/2-2*s,y-h,w+4*s,h)}
+ if(l.a==4){c.fillStyle='#654';c.fillRect(x+w/2-s,y-h+s,3*s,h*.6)}
+ c.fillStyle='#333';c.fillRect(x-w/2+s,y-h*.3,w/2-s,h*.3);c.fillRect(x+s*.5,y-h*.3,w/2-s,h*.3);
+ c.fillStyle=l.c;c.fillRect(x-w/2,y-h,w,l.g=='f'?h*.8:h*.7);
+ c.fillStyle=sk;c.beginPath();c.arc(x,hy,hr,0,7);c.fill();
+ if(l.r==1){c.beginPath();c.moveTo(x-hr,hy);c.lineTo(x-hr-2*s,hy-2*s);c.lineTo(x-hr+s,hy-s);c.moveTo(x+hr,hy);c.lineTo(x+hr+2*s,hy-2*s);c.lineTo(x+hr-s,hy-s);c.fill()}
+ c.fillStyle=l.hc;c.beginPath();c.arc(x,hy,hr,Math.PI,0);c.fill();
+ if(l.g=='f'){c.fillRect(x-hr,hy,hr*.5,hr*1.6);c.fillRect(x+hr*.5,hy,hr*.5,hr*1.6)}
+ c.fillStyle='#000';c.fillRect(x-hr*.5,hy,s,s);c.fillRect(x+hr*.5-s,hy,s,s);
+ if(l.a==1){c.fillStyle='#432';c.fillRect(x-hr-s,hy-hr*.6,hr*2+2*s,s*1.5);c.fillRect(x-hr*.7,hy-hr*1.5,hr*1.4,hr)}
+ if(l.a==2){c.strokeStyle='#000';c.lineWidth=s*.6;c.strokeRect(x-hr*.8,hy-s*.4,hr*.7,s*1.6);c.strokeRect(x+hr*.1,hy-s*.4,hr*.7,s*1.6);c.lineWidth=1}}
+function tile(e){const r=$('#cv').getBoundingClientRect();return[Math.floor((e.clientX-r.left)/r.width*W),Math.floor((e.clientY-r.top)/r.height*Hh)]}
+function paint(e,first){if(!isM())return;const[x,y]=tile(e);if(x<0||y<0||x>=W||y>=Hh)return;const k=x+','+y;if(!first&&k==lastK)return;lastK=k;
+ if(tool=='mv'){if(!first)return;const u=Object.keys(T.mem).find(u=>T.mem[u].c&&T.mem[u].p+''==[x,y]+'');
+  if(u)sel=u;else if(sel){T.mem[sel].p=[x,y];FB.up(T.id,{['mem.'+sel+'.p']:[x,y]})}draw();return}
+ if(tool=='bl'){if(first)bm=!T.live.b[k];bm?T.live.b[k]=1:delete T.live.b[k];FB.up(T.id,{live:T.live})}
+ else if(tool[0]=='t')draft.t[y*W+x]=+tool[1];
+ else if(tool=='x')delete draft.o[k];else draft.o[k]=tool.slice(2);draw()}
+const cv=$('#cv');cv.onpointerdown=e=>{dn=true;lastK='';paint(e,true)};cv.onpointermove=e=>dn&&paint(e);addEventListener('pointerup',()=>dn=false);
+function mv(dx,dy){if(!T||isM())return;const e=T.mem[me];if(!e||!e.c)return;const x=e.p[0]+dx,y=e.p[1]+dy;
+ if(x<0||y<0||x>=W||y>=Hh||blocked(x,y))return;e.p=[x,y];FB.up(T.id,{['mem.'+me+'.p']:e.p});draw()}
+addEventListener('keydown',e=>{if($('#ov').classList.contains('on')||!T||!$('#s-table').classList.contains('on'))return;
+ const d={ArrowUp:[0,-1],w:[0,-1],ArrowDown:[0,1],s:[0,1],ArrowLeft:[-1,0],a:[-1,0],ArrowRight:[1,0],d:[1,0]}[e.key];if(d){e.preventDefault();mv(...d)}});
+function onTables(l){D.t=l;if(T){const n=D.t.find(x=>x.id==T.id);if(!n){leave();toast('Mesa removida');return}T=n;if($('#s-table').classList.contains('on')){if(!isM()&&!T.mem[me]){leave();toast('Você foi removido da mesa');return}draw()}}else if($('#s-tables').classList.contains('on'))tl()}
+
+/* ---------- Gestão (mestre) ---------- */
+function mgM(){M(`<h3>Gerenciar mesa</h3><b>Solicitações</b>${T.req.map(u=>`<div class="row" style="margin:6px 0;align-items:center"><span class="f">${esc(u)}</span><button onclick="ap('${esc(u)}',1)">Aceitar</button><button class="g" onclick="ap('${esc(u)}',0)">Recusar</button></div>`).join('')||'<p class="mu">Nenhuma.</p>'}
+<b>Jogadores</b>${Object.keys(T.mem).map(u=>`<div class="row" style="margin:6px 0;align-items:center"><span class="f">${esc(u)}${T.mem[u].c?' — '+esc(T.mem[u].c.name):''}</span><button class="g" onclick="rm('${esc(u)}')">Remover</button></div>`).join('')||'<p class="mu">Nenhum.</p>'}`)}
+function ap(u,ok){const q={req:FB.ar2(u)};if(ok)q['mem.'+u]={c:null,p:[1,1]};FB.up(T.id,q);T.req=T.req.filter(x=>x!=u);if(ok)T.mem[u]={c:null,p:[1,1]};mgM()}
+function rm(u){delete T.mem[u];FB.up(T.id,{['mem.'+u]:FB.del()});mgM();draw()}
+
+/* ---------- Personagem ---------- */
+function charM(tab){const c=tab?T.mem[me].c||{name:'',pers:'',story:'',look:{...D.u[me].look}}:null;CL={...(tab?c.look:D.u[me].look)};
+ const sel=(id,o,v)=>`<select id="${id}" onchange="lk()">${o.map((x,i)=>`<option value="${i}" ${i==v?'selected':''}>${x}</option>`).join('')}</select>`;
+ M(`<h3>${tab?'Seu personagem':'Aparência padrão'}</h3><div class="row"><canvas id="pv" width="130" height="150" style="background:var(--bg);border-radius:10px"></canvas><div class="f">
+ ${sel('pg',['Masculino','Feminino'],CL.g=='f'?1:0)}${sel('pr',['Humano','Elfo','Anão','Orc','Androide','Outro'],CL.r)}
+ <label class="mu">Tamanho</label><input id="ph" type="range" min="80" max="125" value="${CL.h*100}" oninput="lk()">
+ <label class="mu">Peso</label><input id="pw2" type="range" min="80" max="140" value="${CL.w*100}" oninput="lk()">
+ <label class="mu">Roupa / Cabelo</label><div class="row"><input id="pc" type="color" value="${CL.c}" oninput="lk()"><input id="pk" type="color" value="${CL.hc}" oninput="lk()"></div>
+ ${sel('pa',['Sem acessório','Chapéu','Óculos','Capa','Mochila'],CL.a)}</div></div>
+ ${tab?`<input id="cn" placeholder="Nome do personagem" value="${esc(c.name)}"><textarea id="cp" placeholder="Personalidade">${esc(c.pers)}</textarea><textarea id="cs" placeholder="Resumo da história">${esc(c.story)}</textarea>`:''}
+ <button onclick="svC(${tab?1:0})">Salvar</button>`);lk()}
+function lk(){CL={g:$('#pg').value==1?'f':'m',r:+$('#pr').value,h:$('#ph').value/100,w:$('#pw2').value/100,c:$('#pc').value,hc:$('#pk').value,a:+$('#pa').value};
+ const c=$('#pv').getContext('2d');c.clearRect(0,0,130,150);drawChar(c,65,135,5,CL)}
+function svC(tab){if(tab){const n=$('#cn').value.trim();if(!n)return toast('Informe o nome do personagem');T.mem[me].c={name:n,pers:$('#cp').value,story:$('#cs').value,look:CL};FB.up(T.id,{['mem.'+me+'.c']:T.mem[me].c})}
+ D.u[me].look=CL;FB.look(CL);X();if(T)draw();toast('Personagem salvo!')}
+
+</script>
+<script type="module">
+/* ===== COLE AQUI A CONFIG DO SEU PROJETO FIREBASE (Configurações do projeto > Seus apps > Web) ===== */
+const cfg={apiKey:"COLE_AQUI",authDomain:"SEU-PROJETO.firebaseapp.com",projectId:"SEU-PROJETO",appId:"COLE_AQUI"};
+import{initializeApp}from'https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js';
+import{getAuth,onAuthStateChanged,signInWithEmailAndPassword,createUserWithEmailAndPassword,signOut,sendPasswordResetEmail}from'https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js';
+import{getFirestore,doc,getDoc,setDoc,updateDoc,collection,onSnapshot,arrayUnion,arrayRemove,deleteField}from'https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js';
+const app=initializeApp(cfg),auth=getAuth(app),db=getFirestore(app);let unsub=null,fresh=false;
+const MSG={'auth/email-already-in-use':'E-mail já cadastrado','auth/weak-password':'Senha muito curta (mín. 6)','auth/invalid-email':'E-mail inválido','auth/network-request-failed':'Sem conexão'};
+const BAD=['auth/invalid-credential','auth/wrong-password','auth/user-not-found'];
+const um=u=>doc(db,'usernames',u.toLowerCase());
+window.FB={
+ msg:e=>MSG[e.code]||e.message,
+ async login(u,p){const s=await getDoc(um(u));if(!s.exists())throw Error('nouser');fresh=true;
+  try{await signInWithEmailAndPassword(auth,s.data().email,p)}catch(e){fresh=false;throw BAD.includes(e.code)?Error('nouser'):e}},
+ async reg(u,m,p){if((await getDoc(um(u))).exists())throw Error('Usuário já existe');fresh=true;
+  let c;try{c=await createUserWithEmailAndPassword(auth,m,p)}catch(e){fresh=false;throw e}
+  await setDoc(doc(db,'users',c.user.uid),{name:u,look:{g:'m',h:1,w:1,r:0,c:'#4a6fd8',hc:'#3a2a1a',a:0}});
+  await setDoc(um(u),{email:m,uid:c.user.uid})},
+ out:()=>signOut(auth),
+ async reset(u){const s=await getDoc(um(u));if(!s.exists())throw Error('Usuário não encontrado');await sendPasswordResetEmail(auth,s.data().email)},
+ mk:t=>setDoc(doc(collection(db,'tables')),{...t,mUid:auth.currentUser.uid}),
+ up:(id,p)=>updateDoc(doc(db,'tables',id),p).catch(e=>toast('Erro: '+e.code)),
+ look:l=>updateDoc(doc(db,'users',auth.currentUser.uid),{look:l}),
+ ar:u=>arrayUnion(u),ar2:u=>arrayRemove(u),del:()=>deleteField()};
+onAuthStateChanged(auth,async u=>{unsub&&unsub();unsub=null;
+ if(!u)return unauthed();
+ let s;for(let i=0;i<8;i++){s=await getDoc(doc(db,'users',u.uid));if(s.exists())break;await new Promise(r=>setTimeout(r,400))}
+ if(!s.exists())return;const d=s.data();
+ unsub=onSnapshot(collection(db,'tables'),q=>onTables(q.docs.map(x=>({id:x.id,...x.data()}))));
+ authed(d.name,d.look,fresh);fresh=false});
+</script>
+</body>
+</html>
